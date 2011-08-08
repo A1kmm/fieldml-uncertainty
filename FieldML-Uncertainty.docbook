@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "docbookx.dtd">
+<article lang="en">
+<articleinfo>
+  <title>A proposed mechanism for representing uncertainty in FieldML models</title>
+</articleinfo>
+
+<section>
+  <title>Application to FieldML</title>
+  <para>
+    This document describes how existing facilities in FieldML can be used to describe uncertainty about values in a FieldML model.
+  </para>
+  <para>
+    Because this approach uses standard FieldML, through the ExternalEvaluator mechanism defined in FieldML 0.4, it is possible for models to be coded up according to these guidelines and still comply with the FieldML 0.4 specification.
+  </para>
+</section>
+
+<section>
+  <title>Definition and statistical model of parameter uncertainty</title>
+  <para>
+    In this specification, parameter uncertainty describes the situation where a parameter has a true value, but that true value is unknown for some reason. Parameter uncertainty can arise for a number of reasons; the following is a non-exhaustive list (and more than one of the below can and often will apply):
+    <orderedlist>
+      <listitem><para>The parameter was measured, but due to measurement error, the measurements taken do not give an exact value.</para></listitem>
+      <listitem><para>No data on a parameter is available, so only a rough estimate, with inherent uncertainty is known.</para></listitem>
+      <listitem><para>The parameter is the value for a particular individual from a population; the distribution of values over the population is known, but the specific value for the individual is not known (note: individual and population are intended in the broadest sense possible; it could refer to anything from an individual molecule from a population of molecules to an individual planet from a population of planets).</para></listitem>
+    </orderedlist>
+  </para>
+  <para>
+    In this specification, a Bayesian approach is taken to describe parameter uncertainty. Uncertain parameters are represented using a random variable, distributed according to some distribution. Given all available data D, the probability that an uncertain parameter X has value x is represented by a function of x, <math xmlns='http://www.w3.org/1998/Math/MathML' display='inline'><mi>f</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><mi>X</mi><mo>=</mo><mi>x</mi><mo stretchy="false">|</mo><mi>D</mi><mo stretchy="false">)</mo></math>.
+  </para>
+  <para>
+    The probabilities considered in this document are posterior probabilities; that is, they are the probability that the true value of the parameter is equal to a particular value, given all data observed. They are not likelihood values (that is, they are not the probability of seeing the data given the parameters).
+  </para>
+  <para>
+    In this specification, probability distributions of parameters are represented by giving a sufficiently large number of samples from the parameter distribution (each sample is called a realisation), rather than by specifying the probability density function; this approach has the benefit of generality to the case where there is no known closed form for the p.d.f.
+  </para>
+  <para>
+    It is anticipated that it will often be the case that two or more parameters are non-independent, and so it is necessary to describe how they are related. The specification provides a mechanism for creating a random sample from a FieldML ensemble; that random sample from the FieldML ensemble can be used to index two or more ParameterEvaluators that have been set up; for the same ensemble value index, those two ParameterEvaluators will yield a particular sample from the joint distribution.
+  </para>
+</section>
+
+<section>
+  <title>The random.0d.sample.uniform.* class of ExternalEvaluators</title>
+  <para>
+    Software which supports this specification shall recognise ExternalEvaluator names which begin with random.0d.sample.uniform. as being a class of ExternalEvaluator to be interpreted in accordance with this section.
+  </para>
+  <para>
+    The remainder of the ExternalEvaluator name may be freely chosen by the modeller so the name uniquely identifies a particular sample.
+  </para>
+  <para>
+    The valueType attribute on an ExternalEvaluator of the class described in this section must refer to an ensemble type.
+  </para>
+  <para>
+    ExternalEvaluators of the class described in this section must not take any arguments.
+  </para>
+  <para>
+    The semantics shall be that the evaluator produces a value of the ensemble type specified by the valueType attribute, sampled equiprobably (so that each member of the ensemble has equal probability of being sampled).
+  </para>
+  <para>
+    Where there are two or more references by name to the same ExternalEvaluator (of the class described in this section), those references shall refer to the exact same sample from the ExternalEvaluator.
+  </para>
+  <para>
+    Where there are two or more ExternalEvaluators (with different names) of the class described in this section in a model, each of those ExternalEvaluators shall produce an independent sample, even if two or more of the ExternalEvaluators have valueType attributes that refer to the same ensemble type.
+  </para>
+</section>
+
+<section>
+  <title>Using a random.0d.sample.uniform.* ExternalEvaluator to sample from realisation</title>
+  <para>
+    A random sample evaluator of the type described above can be fed into a ParameterEvaluator to allow realisations to be described. For example, suppose that x has a constant, but uncertain value:
+    <programlisting><![CDATA[
+<Fieldml version="0.4"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xsi:noNamespaceSchemaLocation="http://www.fieldml.org/resources/xml/0.4/FieldML_0.4.xsd">
+  <Region name="example1">
+    <Import xlink:href="http://www.fieldml.org/resources/xml/0.4/FieldML_Library_0.4.xml"
+            region="library">
+      <ImportType localName="real.1d" remoteName="real.1d"/>
+    </Import>
+
+    <EnsembleType name="example1.realisations.type">
+      <Members>
+        <MemberRange min="1" max="100" />
+      </Members>
+    </EnsembleType>
+
+    <ExternalEvaluator name="random.0d.sample.uniform.realisation"
+                       valueType="example1.realisations.type">
+      <Arguments/>
+    </ExternalEvaluator>
+
+    <ParamaterEvaluator name="example1.xValue" valueType="real.1d">
+      <Arguments>
+        <Argument name="example1.realisations.type" />
+      </Arguments>
+      <SemidenseData data="example1.realisations.x.data">
+        <DenseIndexes>
+          <IndexEvaluator evaluator="example1.realisations.type" />
+        </DenseIndexes>
+      </SemidenseData>
+    </ParameterEvaluator>
+
+    <TextInlineResource name="example1.realisations.x.resource">
+      <TextString>
+  -0.056401778 -0.694079959 -0.770440335 -0.245022427  2.086079818
+  -0.222235619 -4.311051696 -0.605007095  0.984051980  0.735795918
+  -0.185109234  1.443994825 -0.447931782  0.930033569  0.572005134
+   0.581866861  0.395805036 -0.278649968  0.720573057 -1.050227356
+   0.735246310  1.184012698 -2.373490125 -0.886354508 -0.240038202
+  -0.259573626 -1.695733957 -0.005705677 -0.509706488  0.584341646
+   0.132433187 -0.783493894  1.675948674  0.234092735  0.919226368
+   2.057546756 -0.598756465 -1.775764254  2.409215958  0.690050820
+   1.240093810 -2.354638709  0.186823629  0.403452773 -1.749147440
+   0.712559549  0.725989977 -1.864965752  0.492691735 -0.083277310
+  -1.599181043 -0.904696528  0.217504917 -0.476879694  1.239187684
+   0.266997088 -0.725227342 -1.153729486 -0.498434393  0.607536609
+   0.423194252 -0.576755502  1.890656246  0.397263394 -0.116522534
+   0.973733230  0.839494255  1.594776517  0.015138495  0.417987974
+  -0.399900223  1.157917331 -0.639739648 -0.003361628 -0.712147628
+  -0.050669212 -0.265285105 -0.740243887  0.003448849 -1.197366588
+  -0.517831530  0.727148795 -0.625443276 -0.087443543  0.538823960
+   0.883742085  0.877267450 -1.450156902  0.062287720  1.183241624
+  -0.522642034 -0.275088523  0.033821790  0.835028207  1.280141558
+   0.232226925  1.909802876  2.553065489  0.550757684  0.294094668
+      </TextString>
+      <TextDataSource name="example1.realisations.x.data" count="20"
+                      firstLine="1" length="5" />
+    </TextInlineResource>
+  </Region>
+</Fieldml>
+    ]]></programlisting>
+    In the above listing, example1.xValue will take a value that is sampled from the realisations provided.
+  </para>
+  <para>
+    In addition to the index from the ExternalEvaluator, other indices to the ParameterEvaluator can be provided, allowing realisations to be used to describe random variation of higher dimensional types. In addition, the same ExternalEvaluator can be used more than once in an evaluation pipeline, allowing correlated samples to be described:
+
+    <programlisting><![CDATA[
+<Fieldml version="0.4"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xsi:noNamespaceSchemaLocation="http://www.fieldml.org/resources/xml/0.4/FieldML_0.4.xsd">
+  <Region name="example2">
+    <Import xlink:href="http://www.fieldml.org/resources/xml/0.4/FieldML_Library_0.4.xml" region="library">
+      <ImportType localName="real.1d" remoteName="real.1d"/>
+      <ImportType localName="real.1d" remoteName="real.2d"/>
+    </Import>
+
+    <EnsembleType name="example2.realisations.type">
+      <Members>
+        <MemberRange min="1" max="10000" />
+      </Members>
+    </EnsembleType>
+
+    <EnsembleType name="example2.node.type">
+      <Members>
+        <MemberRange min="1" max="256" />
+      </Members>
+    </EnsembleType>
+
+    <ArgumentEvaluator name="example2.node.argument" valueType="example2.node.type" />
+
+    <ExternalEvaluator name="random.0d.sample.uniform.realisation" valueType="example1.realisations.type">
+      <Arguments/>
+    </ExternalEvaluator>
+
+    <ParamaterEvaluator name="example2.xValue" valueType="real.1d">
+      <Arguments>
+        <Argument name="example2.realisations.type" />
+      </Arguments>
+      <SemidenseData data="example2.realisations.x.data">
+        <DenseIndexes>
+          <IndexEvaluator evaluator="example2.realisations.type" />
+        </DenseIndexes>
+      </SemidenseData>
+    </ParameterEvaluator>
+
+    <ParamaterEvaluator name="example2.yValue" valueType="real.1d">
+      <Arguments>
+        <Argument name="example2.realisations.type" />
+      </Arguments>
+      <SemidenseData data="example2.realisations.y.data">
+        <DenseIndexes>
+          <IndexEvaluator evaluator="example2.realisations.type" />
+        </DenseIndexes>
+      </SemidenseData>
+    </ParameterEvaluator>
+
+    <AggregateEvaluator name="example2.jointValue" valueType="real.2d">
+      <Bindings>
+        <BindIndex argument="real.2d.component" indexNumber="1"/>
+      </Bindings>
+
+      <ComponentEvaluators>
+        <ComponentEvaluator component="1" evaluator="example2.xValue" />
+        <ComponentEvaluator component="2" evaluator="example2.yValue" />
+      </ComponentEvaluators>
+    </AggregateEvaluator>
+
+    <TextFileResource name="example2.realisations.x.resource" xlink:href="http://example.org/massive-file-with-x-realisations.txt">
+      <TextDataSource name="example2.realisations.x.data" count="20"
+                      firstLine="1" length="128000" />
+    </TextFileResource>
+    <TextFileResource name="example2.realisations.y.resource" xlink:href="http://example.org/massive-file-with-y-realisations.txt">
+      <TextDataSource name="example2.realisations.y.data" count="20"
+                      firstLine="1" length="128000" />
+    </TextFileResource>
+  </Region>
+</Fieldml>
+    ]]></programlisting>
+  </para>
+</section>
+
+</article>
