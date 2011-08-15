@@ -40,6 +40,13 @@
 </section>
 
 <section>
+  <title>Deterministic interpretation</title>
+  <para>
+    For certain applications, it is useful to have a deterministic interpretation of a model. For this reason, uncertainty is implemented using a 
+  </para>
+</section>
+
+<section>
   <title>The random.0d.sample.uniform.* class of ExternalEvaluators</title>
   <para>
     Software which supports this specification shall recognise ExternalEvaluator names which begin with random.0d.sample.uniform. as being a class of ExternalEvaluator to be interpreted in accordance with this section.
