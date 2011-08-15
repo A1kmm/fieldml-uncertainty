@@ -44,6 +44,9 @@
   <para>
     For certain applications, it is useful to have a deterministic interpretation of a model, rather than true randomness. For this reason, parameter uncertainty in FieldML is represented using pseudo-random evaluators. The values of these evaluators depend upon two seeds, one of which is bound as an evaluator argument in the FieldML model, and the other of which is provided by the application.
   </para>
+  <para>
+    A major expected application of parameter uncertainty information in FieldML is to perform sampling sensitivity analyses. For this reason, it is essential that it be possible to evaluate a model at more than one point. For this reason, applications may alter the application seed as required to produce different sets of results.
+  </para>
 </section>
 
 <section>
@@ -55,7 +58,7 @@
     The <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator takes two evaluator arguments. The first argument, called the seed, shall be of any type; it shall be bound to an argument evaluator <userinput>random.seed.argument</userinput> which is also declared to exist. The second argument may be of any type, and defines the point on the field at which to evaluate the argument; it shall be bound to an argument evaluator <userinput>random.point.argument</userinput> which is also declared to exist.
   </para>
   <para>
-    The output of the <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator shall be the pseudo-random value that would be produced by serialising the seed, the point on the field, and a number provided by the application (in an application defined format), computing an MD5 hash (or some other application defined cryptographic hash function or pseudorandom number generator), taking some number of bits from hash, computing an ensemble member index by taking the value of those bits modulo the size of the ensemble, and using the ensemble member index to yield a value of the ensemble.
+    The output of the <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator shall be the pseudo-random value that would be produced by serialising the seed, the point on the field, and a number provided by the application (in an application defined format), computing an MD5 hash (or some other application defined cryptographic hash function or pseudorandom number generator), taking some number of bits from the hash, computing an ensemble member index by taking the value of those bits modulo the number of members in the ensemble, and using the ensemble member index to yield a value of the ensemble.
   </para>
 </section>
 
