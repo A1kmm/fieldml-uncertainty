@@ -42,37 +42,25 @@
 <section>
   <title>Deterministic interpretation</title>
   <para>
-    For certain applications, it is useful to have a deterministic interpretation of a model. For this reason, uncertainty is implemented using a 
+    For certain applications, it is useful to have a deterministic interpretation of a model, rather than true randomness. For this reason, parameter uncertainty in FieldML is represented using pseudo-random evaluators. The values of these evaluators depend upon two seeds, one of which is bound as an evaluator argument in the FieldML model, and the other of which is provided by the application.
   </para>
 </section>
 
 <section>
-  <title>The random.0d.sample.uniform.* class of ExternalEvaluators</title>
+  <title>The random.0d.sample.equiprobable ExternalEvaluator</title>
   <para>
-    Software which supports this specification shall recognise ExternalEvaluator names which begin with random.0d.sample.uniform. as being a class of ExternalEvaluator to be interpreted in accordance with this section.
+    Software which supports this specification shall recognise <userinput>random.0d.sample.equiprobable</userinput> as being an ExternalEvaluator to be interpreted in accordance with this section. The ExternalEvaluator should not be explicitly defined (all explicit ExternalEvaluator definitions require a valueType attribute, which cannot be provided for <userinput>random.0d.sample.equiprobable</userinput> because different ReferenceEvaluators may define different valueTypes).
   </para>
   <para>
-    The remainder of the ExternalEvaluator name may be freely chosen by the modeller so the name uniquely identifies a particular sample.
+    The <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator takes two evaluator arguments. The first argument, called the seed, shall be of any type; it shall be bound to an argument evaluator <userinput>random.seed.argument</userinput> which is also declared to exist. The second argument may be of any type, and defines the point on the field at which to evaluate the argument; it shall be bound to an argument evaluator <userinput>random.point.argument</userinput> which is also declared to exist.
   </para>
   <para>
-    The valueType attribute on an ExternalEvaluator of the class described in this section must refer to an ensemble type.
-  </para>
-  <para>
-    ExternalEvaluators of the class described in this section must not take any arguments.
-  </para>
-  <para>
-    The semantics shall be that the evaluator produces a value of the ensemble type specified by the valueType attribute, sampled equiprobably (so that each member of the ensemble has equal probability of being sampled).
-  </para>
-  <para>
-    Where there are two or more references by name to the same ExternalEvaluator (of the class described in this section), those references shall refer to the exact same sample from the ExternalEvaluator.
-  </para>
-  <para>
-    Where there are two or more ExternalEvaluators (with different names) of the class described in this section in a model, each of those ExternalEvaluators shall produce an independent sample, even if two or more of the ExternalEvaluators have valueType attributes that refer to the same ensemble type.
+    The output of the <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator shall be the pseudo-random value that would be produced by serialising the seed, the point on the field, and a number provided by the application (in an application defined format), computing an MD5 hash (or some other application defined cryptographic hash function or pseudorandom number generator), taking some number of bits from hash, computing an ensemble member index by taking the value of those bits modulo the size of the ensemble, and using the ensemble member index to yield a value of the ensemble.
   </para>
 </section>
 
 <section>
-  <title>Using a random.0d.sample.uniform.* ExternalEvaluator to sample from realisation</title>
+  <title>Using the <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator to sample from realisations</title>
   <para>
     A random sample evaluator of the type described above can be fed into a ParameterEvaluator to allow realisations to be described. For example, suppose that x has a constant, but uncertain value:
     <programlisting><![CDATA[
@@ -86,27 +74,58 @@
       <ImportType localName="real.1d" remoteName="real.1d"/>
     </Import>
 
-    <EnsembleType name="example1.realisations.type">
+    <EnsembleType name="example1.node.type">
       <Members>
-        <MemberRange min="1" max="100" />
+        <MemberRange min="1" max="1"/>
       </Members>
     </EnsembleType>
 
-    <ExternalEvaluator name="random.0d.sample.uniform.realisation"
-                       valueType="example1.realisations.type">
-      <Arguments/>
-    </ExternalEvaluator>
+    <EnsembleType name="example1.realisations.type">
+      <Members>
+        <MemberRange min="1" max="100"/>
+      </Members>
+    </EnsembleType>
+
+    <EnsembleType name="example1.sample.type">
+      <Members>
+        <MemberRange min="1" max="1"/>
+      </Members>
+    </EnsembleType>
+
+    <ArgumentEvaluator name="example1.node.argument" valueType="example1.node.type"/>
+
+    <ParameterEvaluator name="example1.sample.first">
+      <SemidenseData data="example1.sample.first.data"/>
+    </ParameterEvaluator>
+
+    <ReferenceEvaluator name="example1.realisations.sampledIndex"
+                        evaluator="random.0d.sample.equiprobable"
+                        valueType="example1.realisations.type">
+      <Arguments>
+        <Argument name="example1.node.argument"/>
+      </Arguments>
+      <Bindings>
+        <Bind argument="random.seed.argument" source="example1.sample.first"/>
+        <Bind argument="random.point.argument" source="example1.node.argument"/>
+      </Bindings>
+    </ReferenceEvaluator>
 
     <ParamaterEvaluator name="example1.xValue" valueType="real.1d">
       <Arguments>
-        <Argument name="example1.realisations.type" />
+        <Argument name="example1.realisations.sampledIndex" />
       </Arguments>
       <SemidenseData data="example1.realisations.x.data">
         <DenseIndexes>
-          <IndexEvaluator evaluator="example1.realisations.type" />
+          <IndexEvaluator evaluator="example1.realisations.sampledIndex" />
         </DenseIndexes>
       </SemidenseData>
     </ParameterEvaluator>
+
+    <TextInlineResource name="example1.sample.first.resource">
+      <TextString>1</TextString>
+      <TextDataSource name="example1.sample.first.data" count="1"
+                      firstLine="1" length="1" />
+    </TextInlineResource>
 
     <TextInlineResource name="example1.realisations.x.resource">
       <TextString>
@@ -140,7 +159,7 @@
     In the above listing, example1.xValue will take a value that is sampled from the realisations provided.
   </para>
   <para>
-    In addition to the index from the ExternalEvaluator, other indices to the ParameterEvaluator can be provided, allowing realisations to be used to describe random variation of higher dimensional types. In addition, the same ExternalEvaluator can be used more than once in an evaluation pipeline, allowing correlated samples to be described:
+    In addition to the index from the ExternalEvaluator, other indices to the ParameterEvaluator can be provided, allowing realisations to be used to describe random variation of higher dimensional types (subnode in the example below). In addition, a ReferenceEvaluator for a sample can be used more than once in an evaluation pipeline, allowing correlated samples to be described:
 
     <programlisting><![CDATA[
 <Fieldml version="0.4"
@@ -159,36 +178,65 @@
       </Members>
     </EnsembleType>
 
+    <EnsembleType name="example2.sample.type">
+      <Members>
+        <MemberRange min="1" max="1"/>
+      </Members>
+    </EnsembleType>
+
     <EnsembleType name="example2.node.type">
       <Members>
         <MemberRange min="1" max="256" />
       </Members>
     </EnsembleType>
 
-    <ArgumentEvaluator name="example2.node.argument" valueType="example2.node.type" />
+    <!-- Nodes are sampled independently, subnodes are not... -->
+    <EnsembleType name="example2.subnode.type">
+      <Members>
+        <MemberRange min="1" max="256" />
+      </Members>
+    </EnsembleType>
 
-    <ExternalEvaluator name="random.0d.sample.uniform.realisation" valueType="example1.realisations.type">
-      <Arguments/>
-    </ExternalEvaluator>
+    <ArgumentEvaluator name="example2.node.argument" valueType="example2.node.type" />
+    <ArgumentEvaluator name="example2.subnode.argument" valueType="example2.subnode.type" />
+    <ParameterEvaluator name="example2.sample.first">
+      <SemidenseData data="example2.sample.first.data"/>
+    </ParameterEvaluator>
+
+    <ReferenceEvaluator name="example2.realisations.sampledIndex"
+                        evaluator="random.0d.sample.equiprobable"
+                        valueType="example2.realisations.type">
+      <Arguments>
+        <Argument name="example2.node.argument"/>
+      </Arguments>
+      <Bindings>
+        <Bind argument="random.seed.argument" source="example2.sample.first"/>
+        <Bind argument="random.point.argument" source="example2.node.argument"/>
+      </Bindings>
+    </ReferenceEvaluator>
 
     <ParamaterEvaluator name="example2.xValue" valueType="real.1d">
       <Arguments>
-        <Argument name="example2.realisations.type" />
+        <Argument name="example2.realisations.sampledIndex" />
+        <Argument name="example2.subnode.argument" />
       </Arguments>
       <SemidenseData data="example2.realisations.x.data">
         <DenseIndexes>
-          <IndexEvaluator evaluator="example2.realisations.type" />
+          <IndexEvaluator evaluator="example2.realisations.sampledIndex" />
+          <IndexEvaluator evaluator="example2.subnode.argument" />
         </DenseIndexes>
       </SemidenseData>
     </ParameterEvaluator>
 
     <ParamaterEvaluator name="example2.yValue" valueType="real.1d">
       <Arguments>
-        <Argument name="example2.realisations.type" />
+        <Argument name="example2.realisations.sampledIndex" />
+        <Argument name="example2.subnode.argument" />
       </Arguments>
       <SemidenseData data="example2.realisations.y.data">
         <DenseIndexes>
-          <IndexEvaluator evaluator="example2.realisations.type" />
+          <IndexEvaluator evaluator="example2.realisations.sampledIndex" />
+          <IndexEvaluator evaluator="example2.subnode.argument" />
         </DenseIndexes>
       </SemidenseData>
     </ParameterEvaluator>
@@ -204,6 +252,11 @@
       </ComponentEvaluators>
     </AggregateEvaluator>
 
+    <TextInlineResource name="example2.sample.first.resource">
+      <TextString>1</TextString>
+      <TextDataSource name="example2.sample.first.data" count="1"
+                      firstLine="1" length="1" />
+    </TextInlineResource>
     <TextFileResource name="example2.realisations.x.resource" xlink:href="http://example.org/massive-file-with-x-realisations.txt">
       <TextDataSource name="example2.realisations.x.data" count="20"
                       firstLine="1" length="128000" />
