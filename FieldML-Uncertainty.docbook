@@ -63,6 +63,32 @@
 </section>
 
 <section>
+  <title>The random.1d.sample.uniform ExternalEvaluator</title>
+  <para>
+    Software which supports this specification shall recognise <userinput>random.1d.sample.uniform</userinput> as being an ExternalEvaluator to be interpreted in accordance with this section. It shall have value type real.1d.
+  </para>
+  <para>
+    The <userinput>random.1d.sample.uniform</userinput> ExternalEvaluator takes four evaluator arguments. The first argument, called the seed, shall be of any type; it shall be bound to an argument evaluator <userinput>random.seed.argument</userinput> which is also declared to exist. The second argument may be of any type, and defines the point on the field at which to evaluate the argument; it shall be bound to an argument evaluator <userinput>random.point.argument</userinput> which is also declared to exist. The third argument shall be of type real.1d, and shall define a lower limit for the uniform distribution; it shall be bound to an argument evaluator <userinput>random.lowerLimit.argument</userinput> which is also declared to exist. The fourth argument shall be of type real.1d, and shall define an upper limit for the uniform distribution; it shall be bound to an argument evaluator <userinput>random.upperLimit.argument</userinput> which is also declared to exist.
+  </para>
+  <para>
+    The output of the <userinput>random.1d.sample.uniform</userinput> ExternalEvaluator shall be the pseudo-random value that would be produced by serialising the seed, the point on the field, and a number provided by the application (in an application defined format), computing an MD5 hash (or some other application defined cryptographic hash function or pseudorandom number generator), taking some number of bits from the hash, and using those bits to yield a uniformly distributed random number.
+  </para>
+</section>
+
+<section>
+  <title>The random.1d.sample.normal ExternalEvaluator</title>
+  <para>
+    Software which supports this specification shall recognise <userinput>random.1d.sample.normal</userinput> as being an ExternalEvaluator to be interpreted in accordance with this section. It shall have value type real.1d.
+  </para>
+  <para>
+    The <userinput>random.1d.sample.normal</userinput> ExternalEvaluator takes four evaluator arguments. The first argument, called the seed, shall be of any type; it shall be bound to an argument evaluator <userinput>random.seed.argument</userinput> which is also declared to exist. The second argument may be of any type, and defines the point on the field at which to evaluate the argument; it shall be bound to an argument evaluator <userinput>random.point.argument</userinput> which is also declared to exist. The third argument shall be of type real.1d, and shall define a mean for the normal distribution; it shall be bound to an argument evaluator <userinput>random.mean.argument</userinput> which is also declared to exist. The fourth argument shall be of type real.1d, and shall define the variance for the normal distribution; it shall be bound to an argument evaluator <userinput>random.variance.argument</userinput> which is also declared to exist.
+  </para>
+  <para>
+    The output of the <userinput>random.1d.sample.normal</userinput> ExternalEvaluator shall be the pseudo-random value that would be produced by serialising the seed, the point on the field, and a number provided by the application (in an application defined format), computing an MD5 hash (or some other application defined cryptographic hash function or pseudorandom number generator), taking some number of bits from the hash, and using those bits to yield a normally distributed random number.
+  </para>
+</section>
+
+<section>
   <title>Using the <userinput>random.0d.sample.equiprobable</userinput> ExternalEvaluator to sample from realisations</title>
   <para>
     A random sample evaluator of the type described above can be fed into a ParameterEvaluator to allow realisations to be described. For example, suppose that x has a constant, but uncertain value:
